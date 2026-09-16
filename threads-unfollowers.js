@@ -1448,7 +1448,9 @@
       state.unfollow.done++;
       if (r.ok) {
         consecutiveFails = 0;
-        log('ok', '@' + u.username + ' takipten cikildi (' + r.via + ')');
+        log('ok', '@' + u.username + ' takipten cikildi');
+        // Hangi yolun ise yaradigi sadece konsolda kalsin; kullaniciya gurultu.
+        console.debug('[TU] unfollow @' + u.username + ' -> ' + r.via);
         state.selected.delete(u.id);
         state.following = state.following.filter(function (x) { return x.id !== u.id; });
       } else {
