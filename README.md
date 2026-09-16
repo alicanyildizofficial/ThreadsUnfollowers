@@ -3,7 +3,9 @@
 Threads'te **takip ettiğin ama seni geri takip etmeyen** hesapları bulur ve seçtiklerini
 takipten çıkarır. Instagram için yazılan `InstagramUnfollowers` aracının Threads karşılığı.
 
-Her şey senin tarayıcında çalışır. Hiçbir veri dışarı gönderilmez, hiçbir yere şifre girmezsin.
+Her şey senin tarayıcında çalışır. Veriler geliştiriciye veya üçüncü taraf bir
+sunucuya gönderilmez; işlemler doğrudan tarayıcın ile Threads arasında gerçekleşir.
+Hiçbir yere şifre girmezsin.
 
 ---
 
@@ -117,13 +119,13 @@ gömülü kodu blob olarak açar, yine çalışır.
 
 ### GitHub Pages'te yayınlamak
 
-Depo: `github.com/alicanyildiz/ThreadsUnfollowers`
-Yayın adresi: `https://alicanyildiz.github.io/ThreadsUnfollowers/`
+Depo: `github.com/alicanyildizofficial/ThreadsUnfollowers`
+Yayın adresi: `https://alicanyildizofficial.github.io/ThreadsUnfollowers/`
 
 GitHub'da boş bir depo aç (README ekletme), sonra:
 
 ```bash
-git remote add origin https://github.com/alicanyildiz/ThreadsUnfollowers.git
+git remote add origin https://github.com/alicanyildizofficial/ThreadsUnfollowers.git
 git push -u origin main
 ```
 

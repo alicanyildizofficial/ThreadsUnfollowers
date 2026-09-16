@@ -988,8 +988,8 @@
         (s.note ? '<p class="muted">' + esc(s.note) + '</p>' : '') +
       '</div>' +
       '<button class="btn danger" data-act="stopscan">Taramayı durdur</button>' +
-      '<p class="muted center">Sekmeyi açık tut. Gecikmeler, Threads&rsquo;in geçici engelini ' +
-        'önlemek için bilerek konuldu.</p>';
+      '<p class="muted center">Sekmeyi açık tut. Gecikmeler, Threads&rsquo;in geçici engel ' +
+        'riskini azaltmak için bilerek konuldu.</p>';
   }
   function statBox(label, value) {
     return '<div><span>' + label + '</span><b>' + value + '</b></div>';
@@ -1563,7 +1563,7 @@
       if (i === pool.length - 1) break;
       await sleep(jitter(timings.unfollowDelay, 0.25));
       if ((i + 1) % timings.unfollowBatch === 0) {
-        log('i', 'Zorunlu mola başladı (' + fmtLeft(timings.unfollowBatchPause) + ') — engel önleme.');
+        log('i', 'Zorunlu mola başladı (' + fmtLeft(timings.unfollowBatchPause) + ') — kısıtlama riskini azaltma.');
         var completed = await pauseWithCountdown(
           timings.unfollowBatchPause,
           function () { return state.unfollow.stop; },
