@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Threads Unfollowers",
+  "version": "1.1.0",
+  "description": "Threads'te seni geri takip etmeyenleri bulur ve sectiklerini takipten cikarir.",
+  "permissions": ["scripting", "activeTab"],
+  "host_permissions": [
+    "https://www.threads.com/*",
+    "https://threads.com/*",
+    "https://www.threads.net/*",
+    "https://threads.net/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.threads.com/*",
+        "https://threads.com/*",
+        "https://www.threads.net/*",
+        "https://threads.net/*"
+      ],
+      "js": ["silent-mode.js", "threads-unfollowers.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_title": "Threads Unfollowers'i ac"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
