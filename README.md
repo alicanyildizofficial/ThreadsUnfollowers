@@ -3,6 +3,13 @@
 Threads'te **takip ettiğin ama seni geri takip etmeyen** hesapları bulur ve seçtiklerini
 takipten çıkarır. Instagram için yazılan `InstagramUnfollowers` aracının Threads karşılığı.
 
+> © 2026 Ali Can YILDIZ — Tüm hakları saklıdır. Kişisel kullanım için serbesttir;
+> kopyalanamaz, başka bir yerde yayınlanamaz, değiştirilemez veya ticari amaçla
+> kullanılamaz. Ayrıntılar: [LICENSE](LICENSE).
+>
+> Kaynak kodun açık olması onu serbest kullanıma açmaz — kod, ne çalıştırdığını
+> görebilesin diye açık.
+
 Her şey senin tarayıcında çalışır. Veriler geliştiriciye veya üçüncü taraf bir
 sunucuya gönderilmez; işlemler doğrudan tarayıcın ile Threads arasında gerçekleşir.
 Hiçbir yere şifre girmezsin.

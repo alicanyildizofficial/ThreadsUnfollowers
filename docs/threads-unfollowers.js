@@ -1,5 +1,16 @@
 /*!
  * Threads Unfollowers
+ * https://alicanyildizofficial.github.io/ThreadsUnfollowers/
+ *
+ * Copyright (c) 2026 Ali Can YILDIZ. Tum haklari saklidir. / All rights reserved.
+ *
+ * Kisisel kullanim icin serbesttir: kodu resmi sayfadan kopyalayip kendi
+ * tarayicinda calistirabilirsin. Yazili izin olmadan kopyalanamaz, baska bir
+ * yerde barindirilamaz, degistirilemez, ticari amacla kullanilamaz.
+ * Ayrintili sartlar: LICENSE dosyasi.
+ *
+ * Bagimsiz bir aractir; Meta Platforms, Inc. veya Threads ile baglantili degildir.
+ *
  * threads.com (veya threads.net) uzerinde, giris yapmis halde tarayici konsoluna yapistirin.
  *
  * Calisma mantigi:
