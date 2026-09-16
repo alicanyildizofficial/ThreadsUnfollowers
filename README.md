@@ -166,17 +166,23 @@ gerisini kendisi halleder. Panel zaten hiçbir yol bulamazsa sana bunu söyler v
 ## Hız sınırları ve risk
 
 Threads/Instagram, hızlı toplu işlemleri **geçici engel** (action block) ile cezalandırır.
-Varsayılan gecikmeler bilerek yavaş tutuldu:
+Gecikmeler bilerek yavaş tutuldu ve **arayüzden değiştirilemez**:
 
-| Ayar | Varsayılan |
+| Kural | Değer |
 |---|---|
 | İstekler arası | 0,9 – 2,2 sn (rastgele) |
 | 6 istekte bir mola | 12 sn |
 | Takipten çıkarmalar arası | ~4 sn (±%25 rastgele) |
-| 5 çıkarmada bir mola | 5 dakika |
+| 5 çıkarmada bir mola | **5 dakika (zorunlu)** |
 
-Yani 100 hesap ≈ 1,5 – 2 saat. **Bu değerleri düşürmek riski artırır.**
-Ayarlar (⚙) ekranından değiştirebilirsin ama sorumluluk sende.
+Yani 100 hesap ≈ 1,5 – 2 saat.
+
+Bu değerler kaynak koddaki `TIMINGS` sabitinde durur; ayar ekranı onları yalnızca
+**gösterir**, değiştiremez ve `localStorage`'dan da geçersiz kılınamaz. "Biraz
+hızlandırayım" diyen kullanıcının hesabını yakmasını engellemek için böyle.
+
+Mola sırasında panel geri sayım gösterir ve "Durdur" anında çalışır — bekleme
+kısalmaz ama kullanıcı işlemi iptal edebilir.
 
 Araç ayrıca `429` / checkpoint yanıtı görürse veya üst üste 3 hata alırsa kendini durdurur.
 
@@ -237,4 +243,4 @@ extension/                Chrome eklentisi
 bookmarklet.html          sürükle-bırak yer imi (build.js üretir)
 ```
 
-localStorage anahtarları: `tu_whitelist`, `tu_timings`, `tu_templates`.
+localStorage anahtarları: `tu_whitelist`, `tu_templates`.

@@ -149,14 +149,10 @@
       </li>
       <li>
         <strong>Kodu yapıştır, <kbd>Enter</kbd></strong>
-        <span>Sağ üstte panel açılır. Gerisi tıklamayla.</span>
+        <span>Chrome ilk seferde yapıştırmaya izin vermez: konsola <code>allow pasting</code>
+        yazıp <kbd>Enter</kbd>'a bas, sonra yapıştır. Sağ üstte panel açılır.</span>
       </li>
     </ol>
-
-    <div class="callout">
-      <b>Chrome ilk seferde yapıştırmayı engeller.</b> Konsola <code>allow pasting</code>
-      yazıp <kbd>Enter</kbd>'a bas, sonra kodu yapıştır. Bunu sadece bir kez yaparsın.
-    </div>
   </section>
 
   <section>
@@ -186,8 +182,8 @@
   <section>
     <h2>Ne kadar sürer?</h2>
     <p>
-      Threads toplu takipten çıkmayı <b>geçici engelle</b> cezalandırır. Araç bu yüzden
-      bilerek yavaş: insan hızına yakın, rastgele aralıklarla çalışır.
+      Araç bilerek yavaş çalışır: insan hızına yakın, rastgele aralıklarla. Bu süreler
+      <b>sabittir ve değiştirilemez</b> — hesabını korumak için.
     </p>
     <table>
       <tr><th>İşlem</th><th>Varsayılan</th></tr>
@@ -197,8 +193,8 @@
       <tr><td><b>100 hesap ≈</b></td><td><b>1,5 – 2 saat</b></td></tr>
     </table>
     <p style="margin-top:18px">
-      Ayarlardan hızlandırabilirsin ama <b>risk sana ait</b>. Araç, Threads sınır koyduğunu
-      anlarsa (429 / checkpoint) ya da üst üste 3 hata alırsa kendini durdurur.
+      Araç ayrıca kendini korur: Threads sınır koyduğunu anlarsa ya da üst üste üç hata
+      alırsa işlemi durdurur. İstediğin an "Durdur" diyebilirsin, mola sırasında bile.
     </p>
   </section>
 
@@ -209,10 +205,6 @@
       Takipçi listen, beyaz listen ve ayarların yalnızca kendi tarayıcının deposunda durur.
       Oturum bilgilerin diske yazılmaz.
     </p>
-    <div class="callout">
-      Threads'in kullanım şartları otomasyona izin vermiyor. Bu aracı kullanmak hesabının
-      geçici olarak kısıtlanmasına yol açabilir. Kendi sorumluluğunda kullan.
-    </div>
   </section>
 
   <section>
@@ -309,14 +301,19 @@
   /* ------------------------------------------------------------------ */
 
   var WHITELIST_KEY = 'tu_whitelist';
-  var TIMINGS_KEY = 'tu_timings';
   var TEMPLATES_KEY = 'tu_templates';
   var TEMPLATE_MAX_AGE = 30 * 24 * 3600 * 1000; // 30 gun
   var DEFAULT_APP_ID = '238260118697367'; // Threads (Barcelona) web app id
   var PAGE_SIZE = 50; // arayuzdeki sayfa basina satir
   var SCAN_PAGE_LIMIT = 500; // guvenlik siniri
 
-  var DEFAULT_TIMINGS = {
+  /*
+   * Hiz sinirlari BILEREK sabittir ve arayuzden degistirilemez.
+   * Bu degerleri dusurmek hesabin gecici olarak kisitlanmasina (action block)
+   * yol acar; "biraz hizlandirayim" diyen kullanici hesabini yakar.
+   * Degistirmek isteyen kaynak koda mudahale etmek zorunda kalsin.
+   */
+  var TIMINGS = {
     usersPerRequest: 25,
     pageDelayMin: 900,
     pageDelayMax: 2200,
@@ -343,7 +340,7 @@
     } catch (e) {}
   }
 
-  var timings = Object.assign({}, DEFAULT_TIMINGS, loadJSON(TIMINGS_KEY, {}));
+  var timings = TIMINGS; // sabit; kullanici degistiremez
   var whitelist = loadJSON(WHITELIST_KEY, []);
   var whitelistIds = new Set(whitelist.map(function (u) { return String(u.id); }));
 
@@ -352,6 +349,29 @@
   /* ------------------------------------------------------------------ */
 
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  /* mm:ss */
+  function fmtLeft(ms) {
+    var total = Math.max(0, Math.ceil(ms / 1000));
+    var m = Math.floor(total / 60), sec = total % 60;
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  /*
+   * Zorunlu molayi beklerken paneli donmus gibi birakma: saniyede bir geri sayimi
+   * guncelle ve "Durdur"a basildiysa hemen cik. (Beklemeyi kisaltmaz, sadece
+   * kullanicinin islemi iptal etmesine izin verir.)
+   */
+  async function pauseWithCountdown(ms, isStopped, onTick) {
+    var end = Date.now() + ms;
+    while (true) {
+      var left = end - Date.now();
+      if (left <= 0) return true;
+      if (isStopped()) return false;
+      onTick(left);
+      await sleep(Math.min(1000, left));
+    }
+  }
   function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
   function jitter(base, pct) {
     var d = base * (pct || 0.2);
@@ -1118,6 +1138,8 @@
       '.setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #1d1d1d}',
       '.setrow:last-child{border-bottom:none}',
       '.setrow label{color:#c2c2c2;font-size:12px;flex:1}',
+      '.setrow b{color:#62d6d0;font-size:12px;white-space:nowrap}',
+      '.limits{margin-top:4px}',
       '.muted{color:#6f6f6f;font-size:11px}',
       '.link{color:#60a5fa;cursor:pointer;text-decoration:underline}'
     ].join('');
@@ -1362,36 +1384,32 @@
 
   function renderSettings() {
     bodyEl.innerHTML =
-      '<div class="warn">Bu degerleri dusurmek hesabinin gecici olarak kisitlanma riskini artirir. Varsayilanlar guvenli tarafta.</div>' +
       '<div class="card">' +
-        '<h4>Tarama</h4>' +
-        setRow('Istek basina kullanici', 'usersPerRequest', 1, 100) +
-        setRow('Istekler arasi min (ms)', 'pageDelayMin', 300, 60000) +
-        setRow('Istekler arasi max (ms)', 'pageDelayMax', 300, 60000) +
-        setRow('Kac istekte bir mola', 'longPauseEvery', 1, 100) +
-        setRow('Mola suresi (ms)', 'longPauseMs', 1000, 600000) +
-      '</div>' +
-      '<div class="card">' +
-        '<h4>Takipten cikarma</h4>' +
-        setRow('Cikarmalar arasi (ms)', 'unfollowDelay', 1000, 120000) +
-        setRow('Kac cikarmada bir mola', 'unfollowBatch', 1, 50) +
-        setRow('Mola suresi (ms)', 'unfollowBatchPause', 10000, 3600000) +
+        '<h4>Hiz sinirlari</h4>' +
+        '<p>Bu degerler hesabini korumak icin sabittir ve degistirilemez. ' +
+          'Daha hizli calismak, Threads&rsquo;in gecici engel koymasinin en yaygin sebebi.</p>' +
+        '<div class="limits">' +
+          limitRow('Liste istekleri arasi', (Math.round(timings.pageDelayMin / 100) / 10) + '&ndash;' +
+                   (Math.round(timings.pageDelayMax / 100) / 10) + ' sn') +
+          limitRow('Takipten cikarmalar arasi', '~' + Math.round(timings.unfollowDelay / 1000) + ' sn') +
+          limitRow(timings.unfollowBatch + ' cikarmada bir mola',
+                   Math.round(timings.unfollowBatchPause / 60000) + ' dakika') +
+        '</div>' +
       '</div>' +
       '<div class="card">' +
         '<h4>Beyaz liste</h4>' +
-        '<p>' + whitelist.length + ' hesap korunuyor.</p>' +
+        '<p>' + whitelist.length + ' hesap korunuyor. Bu hesaplar listelerde cikmaz ve ' +
+          'yanlislikla takipten cikarilmaz.</p>' +
         '<div class="row2">' +
           '<button class="btn" data-act="wl-export">Disa aktar</button>' +
           '<button class="btn" data-act="wl-import">Ice aktar</button>' +
           '<button class="btn" data-act="wl-clear">Temizle</button>' +
         '</div>' +
       '</div>' +
-      '<button class="btn primary" data-act="closesettings">Kaydet ve kapat</button>' +
-      '<button class="btn" data-act="resetsettings">Varsayilanlara don</button>';
+      '<button class="btn primary" data-act="closesettings">Kapat</button>';
   }
-  function setRow(label, key, min, max) {
-    return '<div class="setrow"><label>' + label + '</label>' +
-      '<input type="number" data-set="' + key + '" min="' + min + '" max="' + max + '" value="' + timings[key] + '"></div>';
+  function limitRow(label, value) {
+    return '<div class="setrow"><label>' + label + '</label><b>' + value + '</b></div>';
   }
 
   /* ------------------------------------------------------------------ */
@@ -1436,11 +1454,6 @@
   function onShadowChange(e) {
     var f = e.target.getAttribute && e.target.getAttribute('data-f');
     if (f) { state.filters[f] = e.target.checked; state.page = 1; render(); return; }
-    var key = e.target.getAttribute && e.target.getAttribute('data-set');
-    if (key) {
-      var v = parseInt(e.target.value, 10);
-      if (!isNaN(v)) { timings[key] = v; saveJSON(TIMINGS_KEY, timings); }
-    }
   }
 
   function handleAction(act) {
@@ -1454,8 +1467,6 @@
         state.settingsOpen = true; render(); return;
       case 'closesettings':
         state.settingsOpen = false; render(); return;
-      case 'resetsettings':
-        timings = Object.assign({}, DEFAULT_TIMINGS); saveJSON(TIMINGS_KEY, timings); render(); return;
       case 'probe':
         runProbe(); return;
       case 'recalib':
@@ -1630,9 +1641,14 @@
       cursor = res.cursor;
       await sleep(rand(timings.pageDelayMin, timings.pageDelayMax));
       if (pages % timings.longPauseEvery === 0) {
-        state.scan.phase = label + ' — ' + Math.round(timings.longPauseMs / 1000) + ' sn mola (engel onleme)';
-        render();
-        await sleep(timings.longPauseMs);
+        await pauseWithCountdown(
+          timings.longPauseMs,
+          function () { return state.scan.stop; },
+          function (left) {
+            state.scan.phase = label + ' — mola, ' + fmtLeft(left) + ' kaldi';
+            render();
+          }
+        );
       }
     }
     return out;
@@ -1727,12 +1743,14 @@
       if (i === pool.length - 1) break;
       await sleep(jitter(timings.unfollowDelay, 0.25));
       if ((i + 1) % timings.unfollowBatch === 0) {
-        var mins = Math.round(timings.unfollowBatchPause / 60000 * 10) / 10;
-        state.unfollow.note = mins + ' dk mola (engel onleme)';
-        log('i', mins + ' dakika mola veriliyor...');
-        render();
-        await sleep(timings.unfollowBatchPause);
+        log('i', 'Zorunlu mola basladi (' + fmtLeft(timings.unfollowBatchPause) + ') — engel onleme.');
+        var completed = await pauseWithCountdown(
+          timings.unfollowBatchPause,
+          function () { return state.unfollow.stop; },
+          function (left) { state.unfollow.note = 'Zorunlu mola — ' + fmtLeft(left); render(); }
+        );
         state.unfollow.note = '';
+        if (!completed) { log('i', 'Mola sirasinda durduruldu.'); render(); break; }
       }
     }
     state.unfollow.note = 'Bitti';
