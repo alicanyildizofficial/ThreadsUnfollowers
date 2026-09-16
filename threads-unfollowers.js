@@ -16,7 +16,7 @@
 
   var HOSTS = ['threads.com', 'www.threads.com', 'threads.net', 'www.threads.net'];
   if (HOSTS.indexOf(location.hostname) === -1) {
-    alert('Bu arac yalnizca threads.com / threads.net uzerinde calisir.');
+    alert('Bu araç yalnızca threads.com / threads.net üzerinde çalışır.');
     return;
   }
   if (window.__THREADS_UNFOLLOWERS__) {
@@ -718,7 +718,7 @@
         return { ok: false, error: String(e2.message || e2) };
       }
     }
-    return { ok: false, error: 'Takipten cikarma yontemi bulunamadi (bir hesabi elle takipten cikip kalibre edin)' };
+    return { ok: false, error: 'Takipten çıkarma yöntemi bulunamadı (bir hesabı elle takipten çıkıp kalibre et)' };
   }
 
   /* ------------------------------------------------------------------ */
@@ -737,7 +737,7 @@
     page: 1,
     selected: new Set(),
     log: [],
-    unfollow: { done: 0, total: 0, stop: false, note: '' },
+    unfollow: { done: 0, total: 0, ok: 0, fail: 0, stop: false, note: '' },
     minimized: false,
     settingsOpen: false
   };
@@ -851,10 +851,31 @@
       '.item .info{min-width:0;flex:1}',
       '.item .u{display:block;font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
       '.item .n{display:block;color:#7f7f7f;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-      '.tag{font-size:9px;padding:2px 5px;border-radius:20px;border:1px solid #333;color:#9a9a9a;flex:0 0 auto}',
-      '.tag.v{border-color:#1d4ed8;color:#60a5fa}.tag.p{border-color:#3f6212;color:#a3e635}',
-      '.star{background:none;border:none;font-size:15px;cursor:pointer;color:#3a3a3a;padding:2px}',
+      '.tag{display:inline-flex;align-items:center;justify-content:center;margin-left:5px;',
+      'font-size:9px;line-height:1;padding:2px 4px;border-radius:20px;border:1px solid #333;color:#9a9a9a}',
+      '.tag.v{border-color:#1d4ed8;color:#60a5fa;background:rgba(29,78,216,.15)}',
+      '.tag.p{border:none;font-size:10px;padding:0 0 0 2px}',
+      '.star{background:none;border:none;font-size:16px;cursor:pointer;color:#4a4a4a;',
+      'padding:2px 4px;line-height:1;transition:color .12s ease}',
+      '.star:hover{color:#facc15}',
       '.star.on{color:#facc15}',
+      '.toolbar{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}',
+      '.tb-label{font-size:10.5px;color:#6f6f6f;text-transform:uppercase;letter-spacing:.5px;margin-right:2px}',
+      '.chip{flex:1;min-width:64px;padding:7px 8px;border-radius:8px;border:1px solid #2a2a2a;',
+      'background:#171717;color:#d8d8d8;font-size:11.5px;font-weight:600;cursor:pointer}',
+      '.chip:hover:not(:disabled){background:#222;border-color:#3a3a3a}',
+      '.chip:disabled{opacity:.4;cursor:not-allowed}',
+      '.chip.danger-text{color:#f87171}',
+      '.chip.danger-text:hover:not(:disabled){background:#2a1010;border-color:#7f1d1d}',
+      'button.btn.subtle{background:transparent;border-color:#242424;color:#8d8d8d;font-weight:500}',
+      'button.btn.subtle:hover:not(:disabled){background:#161616;color:#ccc}',
+      '.muted.center{text-align:center}',
+      '.count-line{text-align:center;color:#7a7a7a;font-size:11.5px;margin:6px 0 8px}',
+      '.empty{text-align:center;color:#7a7a7a;font-size:12.5px;line-height:1.6;padding:26px 14px;margin:0}',
+      '.empty .star{font-size:13px}',
+      '.tabs button b{display:block;font-size:13px;font-weight:700;margin-top:2px;color:inherit}',
+      '.tabs button.on b{color:#0a0a0a}',
+      '.stats div b{white-space:nowrap}',
       '.pager{display:flex;align-items:center;justify-content:center;gap:12px;margin:10px 0;color:#9a9a9a}',
       '.pager button{background:#1a1a1a;border:1px solid #2a2a2a;color:#ddd;border-radius:7px;width:30px;height:28px;cursor:pointer}',
       '.foot{position:sticky;bottom:-12px;background:#0a0a0a;padding-top:8px;margin-top:6px;border-top:1px solid #1e1e1e}',
@@ -895,6 +916,13 @@
   }
 
   /* --- gorunum yonlendirici --- */
+  /* Tarama veya takipten cikarma suruyor mu? */
+  function isBusy() {
+    if (state.view === 'scanning') return !state.scan.stop;
+    if (state.view === 'unfollowing') return state.unfollow.done < state.unfollow.total && !state.unfollow.stop;
+    return false;
+  }
+
   function render() {
     if (!mounted) return;
     panelEl.classList.toggle('min', state.minimized);
@@ -907,38 +935,36 @@
   }
 
   function renderSetup() {
-    var me = detectMeId();
     var f = TPL.following, fr = TPL.followers;
     var ready = f && fr;
 
     bodyEl.innerHTML =
       (ready
         ? '<div class="card">' +
-            '<h4>Hazir</h4>' +
-            '<p>Baglanti kayitli &mdash; kalibrasyona gerek yok. Dogrudan taramaya basla.</p>' +
+            '<h4>Hazır</h4>' +
+            '<p>Bağlantı kayıtlı, kalibrasyona gerek yok. Doğrudan taramaya başlayabilirsin.</p>' +
           '</div>'
         : '<div class="card">' +
-            '<h4>1 &middot; Baglantiyi yakala</h4>' +
-            '<p>Bunu <b>sadece bir kez</b> yapacaksin; sonraki aramalarda hatirlanir.</p>' +
+            '<h4>Bağlantıyı yakala</h4>' +
+            '<p>Bunu <b>sadece bir kez</b> yapacaksın; sonraki taramalarda hatırlanır.</p>' +
             '<ol class="steps">' +
               '<li>Kendi profiline git.</li>' +
-              '<li><b>Takipciler</b>e tikla, listeyi birkac saniye kaydir, kapat.</li>' +
-              '<li><b>Takip edilenler</b>e tikla, listeyi birkac saniye kaydir, kapat.</li>' +
+              '<li><b>Takipçiler</b>&rsquo;e tıkla, listeyi birkaç saniye kaydır, kapat.</li>' +
+              '<li><b>Takip edilenler</b>&rsquo;e tıkla, listeyi birkaç saniye kaydır, kapat.</li>' +
             '</ol>' +
           '</div>') +
       '<div class="status">' +
         stRow('Takip edilenler', f) +
-        stRow('Takipciler', fr) +
+        stRow('Takipçiler', fr) +
       '</div>' +
-      (me || ready ? '' : '<div class="warn">Hesap kimligin okunamadi. Sorun degil &mdash; yakalama yontemi yine calisir.</div>') +
-      (ready ? '' : '<button class="btn" data-act="probe">Once otomatik dene</button>') +
-      '<button class="btn primary" data-act="scan"' + (ready ? '' : ' disabled') + '>Taramayi baslat</button>' +
-      (ready ? '<button class="btn" data-act="recalib">Kayitli baglantiyi sifirla</button>' : '') +
-      '<p class="muted" style="margin-top:10px">Ipucu: paneli surukleyebilir, &#8211; ile kucultup Threads&rsquo;te gezinebilirsin.</p>';
+      (ready ? '' : '<button class="btn" data-act="probe">Önce otomatik dene</button>') +
+      '<button class="btn primary" data-act="scan"' + (ready ? '' : ' disabled') + '>Taramayı başlat</button>' +
+      (ready ? '<button class="btn subtle" data-act="recalib">Kayıtlı bağlantıyı sıfırla</button>' : '') +
+      '<p class="muted center">Paneli sürükleyebilir, &#8211; ile küçültüp Threads&rsquo;te gezinebilirsin.</p>';
   }
   function stRow(label, tpl) {
     var ok = !!tpl;
-    var meta = !ok ? 'bekleniyor' : (tpl.restored ? 'kayitli baglanti' : tpl.users + ' kullanici yakalandi');
+    var meta = !ok ? 'bekleniyor' : (tpl.restored ? 'kayıtlı' : tpl.users + ' hesap yakalandı');
     return '<div class="st ' + (ok ? 'ok' : '') + '">' +
       '<span class="mark">' + (ok ? '&#10003;' : '&#183;') + '</span>' +
       '<span>' + label + '</span>' +
@@ -951,18 +977,37 @@
     var pct = Math.round(100 * (1 - 1 / (1 + s.loaded / 250)));
     bodyEl.innerHTML =
       '<div class="card">' +
-        '<h4>Taraniyor</h4>' +
+        '<h4>Taranıyor</h4>' +
         '<p>' + esc(s.phase) + '</p>' +
         '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
         '<div class="stats">' +
-          '<div><span>Yuklenen</span><b>' + s.loaded + '</b></div>' +
-          '<div><span>Istek</span><b>' + s.pages + '</b></div>' +
-          '<div><span>Takip ettigin</span><b>' + state.following.length + '</b></div>' +
+          statBox('Yüklenen', s.loaded) +
+          statBox('İstek', s.pages) +
+          statBox('Takip ettiğin', state.following.length) +
         '</div>' +
         (s.note ? '<p class="muted">' + esc(s.note) + '</p>' : '') +
       '</div>' +
-      '<button class="btn danger" data-act="stopscan">Taramayi durdur</button>' +
-      '<p class="muted" style="margin-top:8px">Sekmeyi acik tut. Gecikmeler, Threads&rsquo;in gecici engelini onlemek icin bilerek konuldu.</p>';
+      '<button class="btn danger" data-act="stopscan">Taramayı durdur</button>' +
+      '<p class="muted center">Sekmeyi açık tut. Gecikmeler, Threads&rsquo;in geçici engelini ' +
+        'önlemek için bilerek konuldu.</p>';
+  }
+  function statBox(label, value) {
+    return '<div><span>' + label + '</span><b>' + value + '</b></div>';
+  }
+
+  /* Sekme sayilarini tek seferde hesapla (her sekme icin ayri filtre pahali olmasin). */
+  function tabCounts() {
+    var followed = new Set(state.following.map(function (u) { return u.id; }));
+    var c = { non: 0, mutual: 0, fans: 0, white: 0 };
+    for (var i = 0; i < state.following.length; i++) {
+      var u = state.following[i];
+      if (whitelistIds.has(u.id)) { c.white++; continue; }
+      if (state.followerIds.has(u.id)) c.mutual++; else c.non++;
+    }
+    for (var j = 0; j < state.followers.length; j++) {
+      if (!followed.has(state.followers[j].id)) c.fans++;
+    }
+    return c;
   }
 
   function visibleUsers() {
@@ -972,7 +1017,9 @@
         return !state.followerIds.has(u.id) && !whitelistIds.has(u.id);
       });
     } else if (state.tab === 'mutual') {
-      list = state.following.filter(function (u) { return state.followerIds.has(u.id); });
+      list = state.following.filter(function (u) {
+        return state.followerIds.has(u.id) && !whitelistIds.has(u.id);
+      });
     } else if (state.tab === 'fans') {
       var fol = new Set(state.following.map(function (u) { return u.id; }));
       list = state.followers.filter(function (u) { return !fol.has(u.id); });
@@ -987,57 +1034,66 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username); });
+    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
   }
 
   function renderReview() {
     var users = visibleUsers();
+    var counts = tabCounts();
     var maxPage = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
     if (state.page > maxPage) state.page = maxPage;
     var slice = users.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
     var canUnfollow = state.tab !== 'fans';
+    var selected = state.selected.size;
 
     bodyEl.innerHTML =
       '<div class="stats">' +
-        '<div><span>Takip ettigin</span><b>' + state.following.length + '</b></div>' +
-        '<div><span>Takipci</span><b>' + state.followers.length + '</b></div>' +
-        '<div><span>Geri takip yok</span><b>' + state.following.filter(function (u) { return !state.followerIds.has(u.id); }).length + '</b></div>' +
+        statBox('Takip ettiğin', state.following.length) +
+        statBox('Takipçin', state.followers.length) +
+        statBox('Geri takipsiz', counts.non) +
       '</div>' +
       '<div class="tabs">' +
-        tabBtn('non', 'Geri takip etmeyen') +
-        tabBtn('mutual', 'Karsilikli') +
-        tabBtn('fans', 'Takip etmediklerin') +
-        tabBtn('white', 'Beyaz liste') +
+        tabBtn('non', 'Geri takipsiz', counts.non) +
+        tabBtn('mutual', 'Karşılıklı', counts.mutual) +
+        tabBtn('fans', 'Seni takip eden', counts.fans) +
+        tabBtn('white', 'Beyaz liste', counts.white) +
       '</div>' +
-      '<input type="text" id="q" placeholder="Kullanici adi veya isim ara" value="' + esc(state.search) + '">' +
+      '<input type="text" id="q" placeholder="Kullanıcı adı veya isim ara" value="' + esc(state.search) + '">' +
       '<div class="filters">' +
-        '<label><input type="checkbox" data-f="verified"' + (state.filters.verified ? ' checked' : '') + '> Dogrulanmis</label>' +
+        '<label><input type="checkbox" data-f="verified"' + (state.filters.verified ? ' checked' : '') + '> Doğrulanmış</label>' +
         '<label><input type="checkbox" data-f="private"' + (state.filters.private ? ' checked' : '') + '> Gizli</label>' +
-        '<label><input type="checkbox" data-f="noPic"' + (state.filters.noPic ? ' checked' : '') + '> Fotosuz</label>' +
+        '<label><input type="checkbox" data-f="noPic"' + (state.filters.noPic ? ' checked' : '') + '> Fotoğrafsız</label>' +
       '</div>' +
-      '<div class="row2">' +
-        '<button class="btn" data-act="selpage">Sayfayi sec</button>' +
-        '<button class="btn" data-act="selall">Tumunu sec (' + users.length + ')</button>' +
-        '<button class="btn" data-act="selnone">Temizle</button>' +
+      (canUnfollow
+        ? '<div class="toolbar">' +
+            '<span class="tb-label">Seç</span>' +
+            '<button class="chip" data-act="selpage">Sayfa</button>' +
+            '<button class="chip" data-act="selall">Tümü (' + users.length + ')</button>' +
+            '<button class="chip" data-act="selnone"' + (selected ? '' : ' disabled') + '>Temizle</button>' +
+          '</div>'
+        : '') +
+      '<div class="toolbar">' +
+        '<span class="tb-label">Dışa aktar</span>' +
+        '<button class="chip" data-act="copy">Kopyala</button>' +
+        '<button class="chip" data-act="csv">CSV</button>' +
+        '<button class="chip" data-act="json">JSON</button>' +
       '</div>' +
-      '<div class="row2">' +
-        '<button class="btn" data-act="copy">Kopyala</button>' +
-        '<button class="btn" data-act="csv">CSV</button>' +
-        '<button class="btn" data-act="json">JSON</button>' +
-      '</div>' +
-      '<div class="pager">' +
-        '<button data-act="prev">&#10094;</button>' +
-        '<span>' + state.page + ' / ' + maxPage + ' &middot; ' + users.length + ' kisi</span>' +
-        '<button data-act="next">&#10095;</button>' +
-      '</div>' +
-      '<div class="list">' + (slice.length ? slice.map(itemHTML).join('') :
-        '<p class="muted" style="text-align:center;padding:18px 0">Bu filtrelerde kimse yok.</p>') + '</div>' +
+      (users.length > PAGE_SIZE
+        ? '<div class="pager">' +
+            '<button data-act="prev"' + (state.page <= 1 ? ' disabled' : '') + '>&#10094;</button>' +
+            '<span>' + state.page + ' / ' + maxPage + ' &middot; ' + users.length + ' kişi</span>' +
+            '<button data-act="next"' + (state.page >= maxPage ? ' disabled' : '') + '>&#10095;</button>' +
+          '</div>'
+        : '<p class="count-line">' + users.length + ' kişi</p>') +
+      '<div class="list">' + (slice.length ? slice.map(itemHTML).join('') : emptyState()) + '</div>' +
       '<div class="foot">' +
         (canUnfollow
-          ? '<button class="btn danger" data-act="dounfollow"' + (state.selected.size ? '' : ' disabled') + '>' +
-            'Secilen ' + state.selected.size + ' hesabi takipten cik</button>'
-          : '<p class="muted">Bu sekmedekileri zaten takip etmiyorsun.</p>') +
-        '<button class="btn" data-act="rescan">Yeniden tara</button>' +
+          ? '<button class="btn ' + (selected ? 'danger' : '') + '" data-act="dounfollow"' +
+            (selected ? '' : ' disabled') + '>' +
+            (selected ? 'Seçilen ' + selected + ' hesabı takipten çıkar' : 'Takipten çıkarmak için hesap seç') +
+            '</button>'
+          : '<p class="muted center">Bu sekmedeki hesapları zaten takip etmiyorsun.</p>') +
+        '<button class="btn subtle" data-act="rescan">Yeniden tara</button>' +
       '</div>';
 
     var q = bodyEl.querySelector('#q');
@@ -1054,7 +1110,17 @@
     wireAvatars();
   }
 
-  /* Yuklenemeyen fotograflarda baş harf avatarina dus (inline onerror CSP'ye takilir). */
+  function emptyState() {
+    var msg;
+    if (state.search) msg = '&ldquo;' + esc(state.search) + '&rdquo; ile eşleşen hesap yok.';
+    else if (state.tab === 'white') msg = 'Beyaz listen boş. Bir hesabı korumak için yanındaki ' +
+      '<span class="star on">&#9733;</span> işaretine dokun.';
+    else if (state.tab === 'non') msg = 'Takip ettiğin herkes seni geri takip ediyor.';
+    else msg = 'Bu filtrelerde hesap yok.';
+    return '<p class="empty">' + msg + '</p>';
+  }
+
+  /* Yuklenemeyen fotograflarda bas harf avatarina dus (inline onerror CSP'ye takilir). */
   function wireAvatars() {
     var imgs = bodyEl.querySelectorAll('.avatar img');
     for (var i = 0; i < imgs.length; i++) {
@@ -1069,8 +1135,9 @@
       })(imgs[i]);
     }
   }
-  function tabBtn(id, label) {
-    return '<button data-tab="' + id + '" class="' + (state.tab === id ? 'on' : '') + '">' + label + '</button>';
+  function tabBtn(id, label, count) {
+    return '<button data-tab="' + id + '" class="' + (state.tab === id ? 'on' : '') + '">' +
+      label + '<b>' + count + '</b></button>';
   }
   function itemHTML(u) {
     var sel = state.selected.has(u.id);
@@ -1081,12 +1148,14 @@
         (u.profile_pic_url ? '<img src="' + esc(u.profile_pic_url) + '" alt="" loading="lazy">' : '') +
       '</span>' +
       '<span class="info">' +
-        '<span class="u">@' + esc(u.username) + '</span>' +
+        '<span class="u">@' + esc(u.username) +
+          (u.is_verified ? '<span class="tag v" title="Doğrulanmış">&#10003;</span>' : '') +
+          (u.is_private ? '<span class="tag p" title="Gizli hesap">&#128274;</span>' : '') +
+        '</span>' +
         '<span class="n">' + esc(u.full_name || ' ') + '</span>' +
       '</span>' +
-      (u.is_verified ? '<span class="tag v">dogrulanmis</span>' : '') +
-      (u.is_private ? '<span class="tag p">gizli</span>' : '') +
-      '<button class="star' + (star ? ' on' : '') + '" data-star="' + esc(u.id) + '" title="Beyaz liste">&#9733;</button>' +
+      '<button class="star' + (star ? ' on' : '') + '" data-star="' + esc(u.id) + '" ' +
+        'title="' + (star ? 'Beyaz listeden çıkar' : 'Beyaz listeye al') + '">&#9733;</button>' +
       '<input type="checkbox" data-pick="' + esc(u.id) + '"' + (sel ? ' checked' : '') + '>' +
     '</div>';
   }
@@ -1094,18 +1163,27 @@
   function renderUnfollowing() {
     var u = state.unfollow;
     var pct = u.total ? Math.round(u.done / u.total * 100) : 0;
+    var bitti = u.done >= u.total;
+    var basarili = u.ok;
+    var basarisiz = u.fail;
+
     bodyEl.innerHTML =
       '<div class="card">' +
-        '<h4>Takipten cikariliyor</h4>' +
+        '<h4>' + (bitti ? 'Tamamlandı' : 'Takipten çıkarılıyor') + '</h4>' +
         '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
-        '<p>' + u.done + ' / ' + u.total + ' tamamlandi' + (u.note ? ' &middot; ' + esc(u.note) : '') + '</p>' +
+        '<div class="stats">' +
+          statBox('İşlenen', u.done + ' / ' + u.total) +
+          statBox('Başarılı', basarili) +
+          statBox('Başarısız', basarisiz) +
+        '</div>' +
+        (u.note ? '<p class="muted">' + esc(u.note) + '</p>' : '') +
       '</div>' +
       '<div class="log">' + state.log.slice(-200).map(function (l) {
         return '<div class="' + l.t + '">[' + l.time + '] ' + esc(l.msg) + '</div>';
       }).join('') + '</div>' +
-      (u.done < u.total
-        ? '<button class="btn danger" data-act="stopunfollow">Durdur</button>'
-        : '<button class="btn primary" data-act="backtolist">Listeye don</button>');
+      (bitti
+        ? '<button class="btn primary" data-act="backtolist">Listeye dön</button>'
+        : '<button class="btn danger" data-act="stopunfollow">Durdur</button>');
     var log = bodyEl.querySelector('.log');
     if (log) log.scrollTop = log.scrollHeight;
   }
@@ -1113,25 +1191,25 @@
   function renderSettings() {
     bodyEl.innerHTML =
       '<div class="card">' +
-        '<h4>Hiz sinirlari</h4>' +
-        '<p>Bu degerler hesabini korumak icin sabittir ve degistirilemez. ' +
-          'Daha hizli calismak, Threads&rsquo;in gecici engel koymasinin en yaygin sebebi.</p>' +
+        '<h4>Hız sınırları</h4>' +
+        '<p>Bu değerler hesabını korumak için sabittir ve değiştirilemez. Daha hızlı ' +
+          'çalışmak, Threads&rsquo;in geçici engel koymasının en yaygın sebebi.</p>' +
         '<div class="limits">' +
-          limitRow('Liste istekleri arasi', (Math.round(timings.pageDelayMin / 100) / 10) + '&ndash;' +
+          limitRow('Liste istekleri arası', (Math.round(timings.pageDelayMin / 100) / 10) + '&ndash;' +
                    (Math.round(timings.pageDelayMax / 100) / 10) + ' sn') +
-          limitRow('Takipten cikarmalar arasi', '~' + Math.round(timings.unfollowDelay / 1000) + ' sn') +
-          limitRow(timings.unfollowBatch + ' cikarmada bir mola',
+          limitRow('Takipten çıkarmalar arası', '~' + Math.round(timings.unfollowDelay / 1000) + ' sn') +
+          limitRow(timings.unfollowBatch + ' çıkarmada bir mola',
                    Math.round(timings.unfollowBatchPause / 60000) + ' dakika') +
         '</div>' +
       '</div>' +
       '<div class="card">' +
         '<h4>Beyaz liste</h4>' +
-        '<p>' + whitelist.length + ' hesap korunuyor. Bu hesaplar listelerde cikmaz ve ' +
-          'yanlislikla takipten cikarilmaz.</p>' +
-        '<div class="row2">' +
-          '<button class="btn" data-act="wl-export">Disa aktar</button>' +
-          '<button class="btn" data-act="wl-import">Ice aktar</button>' +
-          '<button class="btn" data-act="wl-clear">Temizle</button>' +
+        '<p><b>' + whitelist.length + '</b> hesap korunuyor. Bu hesaplar listelerde çıkmaz ve ' +
+          'yanlışlıkla takipten çıkarılmaz.</p>' +
+        '<div class="toolbar">' +
+          '<button class="chip" data-act="wl-export">Dışa aktar</button>' +
+          '<button class="chip" data-act="wl-import">İçe aktar</button>' +
+          '<button class="chip danger-text" data-act="wl-clear">Temizle</button>' +
         '</div>' +
       '</div>' +
       '<button class="btn primary" data-act="closesettings">Kapat</button>';
@@ -1186,9 +1264,17 @@
 
   function handleAction(act) {
     switch (act) {
-      case 'close':
-        if (confirm('Paneli kapat? Toplanan liste kaybolur.')) hostEl.remove();
+      case 'close': {
+        var soru = isBusy()
+          ? 'İşlem sürüyor. Panel kapatılırsa işlem durur. Kapatılsın mı?'
+          : 'Panel kapatılsın mı? Taranan liste kaybolur.';
+        if (!confirm(soru)) return;
+        // Arka planda calismaya devam etmesin.
+        state.scan.stop = true;
+        state.unfollow.stop = true;
+        hostEl.remove();
         return;
+      }
       case 'min':
         state.minimized = !state.minimized; render(); return;
       case 'settings':
@@ -1198,7 +1284,7 @@
       case 'probe':
         runProbe(); return;
       case 'recalib':
-        if (confirm('Kayitli baglanti silinsin mi? Listeleri bir kez daha acman gerekecek.')) {
+        if (confirm('Kayıtlı bağlantı silinsin mi? Listeleri bir kez daha açman gerekecek.')) {
           dropTemplate('following'); dropTemplate('followers');
           render();
         }
@@ -1206,7 +1292,7 @@
       case 'scan':
         startScan(); return;
       case 'stopscan':
-        state.scan.stop = true; state.scan.note = 'Durdurma istendi...'; render(); return;
+        state.scan.stop = true; state.scan.note = 'Durduruluyor\u2026'; render(); return;
       case 'rescan':
         state.view = 'setup'; state.selected.clear(); render(); return;
       case 'prev':
@@ -1224,7 +1310,7 @@
         state.selected.clear(); render(); return;
       case 'copy': {
         var names = visibleUsers().map(function (x) { return '@' + x.username; }).join('\n');
-        navigator.clipboard.writeText(names).then(function () { alert('Liste panoya kopyalandi.'); });
+        navigator.clipboard.writeText(names).then(function () { alert('Liste panoya kopyalandı.'); });
         return;
       }
       case 'csv':
@@ -1234,7 +1320,7 @@
       case 'dounfollow':
         startUnfollow(); return;
       case 'stopunfollow':
-        state.unfollow.stop = true; state.unfollow.note = 'Durduruluyor...'; render(); return;
+        state.unfollow.stop = true; state.unfollow.note = 'Durduruluyor\u2026'; render(); return;
       case 'backtolist':
         state.view = 'review'; render(); return;
       case 'wl-export':
@@ -1242,7 +1328,7 @@
       case 'wl-import':
         importWhitelist(); return;
       case 'wl-clear':
-        if (confirm('Beyaz liste tamamen silinsin mi?')) {
+        if (confirm('Beyaz listedeki tüm hesaplar silinsin mi?')) {
           whitelist = []; whitelistIds = new Set(); saveJSON(WHITELIST_KEY, whitelist); render();
         }
         return;
@@ -1280,7 +1366,7 @@
     saveFile('threads-liste.csv', 'text/csv', rows.map(function (r) { return r.join(','); }).join('\n'));
   }
   function exportWhitelist() {
-    if (!whitelist.length) { alert('Beyaz liste bos.'); return; }
+    if (!whitelist.length) { alert('Beyaz listen boş.'); return; }
     saveFile('threads-beyaz-liste.json', 'application/json', JSON.stringify(whitelist, null, 2));
   }
   function importWhitelist() {
@@ -1293,7 +1379,7 @@
       fr.onload = function () {
         try {
           var arr = JSON.parse(String(fr.result));
-          if (!Array.isArray(arr)) throw new Error('Dizi bekleniyordu');
+          if (!Array.isArray(arr)) throw new Error('Dosya bir liste içermiyor');
           var added = 0;
           arr.forEach(function (u) {
             if (!u || !u.id || !u.username) return;
@@ -1301,9 +1387,9 @@
             whitelist.push(u); whitelistIds.add(String(u.id)); added++;
           });
           saveJSON(WHITELIST_KEY, whitelist);
-          alert(added + ' hesap eklendi.');
+          alert(added + ' hesap beyaz listeye eklendi.');
           render();
-        } catch (e) { alert('Dosya okunamadi: ' + e.message); }
+        } catch (e) { alert('Dosya okunamadı: ' + e.message); }
       };
       fr.readAsText(file);
     };
@@ -1316,18 +1402,18 @@
 
   async function runProbe() {
     state.scan.note = '';
-    bodyEl.querySelector('[data-act="probe"]').textContent = 'Deneniyor...';
+    bodyEl.querySelector('[data-act="probe"]').textContent = 'Deneniyor\u2026';
     var a = await probeRest('following');
     var b = await probeRest('followers');
     render();
     if (!a || !b) {
-      alert('Otomatik deneme tutmadi. Yukaridaki adimlari izleyip listeleri Threads uzerinde bir kez ac.');
+      alert('Otomatik deneme sonuç vermedi. Yukarıdaki adımları izleyip listeleri Threads üzerinde bir kez aç.');
     }
   }
 
   async function collectList(kind, label) {
     var tpl = TPL[kind];
-    if (!tpl) throw new Error(label + ' icin sablon yok.');
+    if (!tpl) throw new Error(label + ' için kayıtlı bağlantı yok.');
     var seen = new Set();
     var out = [];
     var cursor = null;
@@ -1342,9 +1428,9 @@
         if (pages === 0 && tpl.restored) {
           // Kayitli baglanti eskimis: at, kullanicidan bir kez daha kalibrasyon iste.
           dropTemplate(kind);
-          state.scan.note = label + ': kayitli baglanti artik gecerli degil, yeniden kalibrasyon gerekiyor.';
+          state.scan.note = label + ': kayıtlı bağlantı artık geçerli değil, yeniden kalibrasyon gerekiyor.';
         } else {
-          state.scan.note = label + ' hatasi: ' + e.message + ' (elde edilen: ' + out.length + ')';
+          state.scan.note = label + ' alınamadı: ' + e.message + ' (o ana kadar ' + out.length + ' hesap)';
         }
         render();
         break;
@@ -1358,12 +1444,12 @@
         seen.add(u.id); out.push(u); fresh++;
       }
       state.scan.loaded += fresh;
-      state.scan.phase = label + ' taraniyor — ' + out.length + ' hesap';
+      state.scan.phase = label + ' taranıyor — ' + out.length + ' hesap';
       render();
 
       if (!res.cursor || res.users.length === 0 || fresh === 0) break;
       if (pages >= SCAN_PAGE_LIMIT) {
-        state.scan.note = label + ': guvenlik siniri (' + SCAN_PAGE_LIMIT + ' istek) asildi.';
+        state.scan.note = label + ': güvenlik sınırına ulaşıldı (' + SCAN_PAGE_LIMIT + ' istek).';
         break;
       }
       cursor = res.cursor;
@@ -1373,7 +1459,7 @@
           timings.longPauseMs,
           function () { return state.scan.stop; },
           function (left) {
-            state.scan.phase = label + ' — mola, ' + fmtLeft(left) + ' kaldi';
+            state.scan.phase = label + ' — mola, ' + fmtLeft(left) + ' kaldı';
             render();
           }
         );
@@ -1384,7 +1470,7 @@
 
   async function startScan() {
     state.view = 'scanning';
-    state.scan = { phase: 'Baslatiliyor...', loaded: 0, pages: 0, stop: false, note: '' };
+    state.scan = { phase: 'Başlatılıyor\u2026', loaded: 0, pages: 0, stop: false, note: '' };
     state.following = []; state.followers = []; state.followerIds = new Set();
     state.selected.clear();
     render();
@@ -1392,7 +1478,7 @@
       state.following = await collectList('following', 'Takip edilenler');
       render();
       if (!state.scan.stop) {
-        state.followers = await collectList('followers', 'Takipciler');
+        state.followers = await collectList('followers', 'Takipçiler');
       }
       state.followerIds = new Set(state.followers.map(function (u) { return u.id; }));
       state.view = 'review';
@@ -1401,19 +1487,21 @@
       render();
       if (state.scan.note) {
         setTimeout(function () {
-          alert('Tarama tamamlandi ama uyari var:\n\n' + state.scan.note +
-                '\n\nEksik takipci listesi, bazi hesaplarin yanlislikla "geri takip etmiyor" gorunmesine yol acabilir.');
+          alert('Tarama tamamlandı, ama bir uyarı var:\n\n' + state.scan.note +
+                '\n\nTakipçi listesi eksik kaldıysa bazı hesaplar yanlışlıkla "geri takip etmiyor" görünebilir.');
         }, 200);
       }
     } catch (e) {
       state.view = 'setup';
       render();
-      alert('Tarama basarisiz: ' + e.message);
+      alert('Tarama başarısız: ' + e.message);
     }
   }
 
+  var LOG_LIMIT = 500;
   function log(type, msg) {
     state.log.push({ t: type, msg: msg, time: nowStr() });
+    if (state.log.length > LOG_LIMIT) state.log.splice(0, state.log.length - LOG_LIMIT);
   }
 
   async function startUnfollow() {
@@ -1422,49 +1510,51 @@
     if (!pool.length) return;
     // On kontrol: hic bir takipten cikarma yolumuz yoksa bosuna 40 dakika beklenmesin.
     if (!(SNIFF.csrf || getCookie('csrftoken')) && !TPL.unfollow) {
-      alert('Takipten cikarma yontemi bulunamadi.\n\n' +
-            'Threads uzerinde HERHANGI bir hesabi elle bir kez takipten cik; ' +
-            'arac o istegi ogrenip gerisini kendisi yapar. Sonra buraya donup tekrar dene.');
+      alert('Takipten çıkarma yöntemi bulunamadı.\n\n' +
+            'Threads üzerinde herhangi bir hesabı elle bir kez takipten çık; ' +
+            'araç o isteği öğrenip gerisini kendisi yapar. Sonra buraya dönüp tekrar dene.');
       return;
     }
     var risky = pool.filter(function (u) { return whitelistIds.has(u.id); });
-    var msg = pool.length + ' hesabi takipten cikarmak uzeresin.\n' +
-      'Tahmini sure: ~' + estimateMinutes(pool.length) + ' dakika.\n' +
-      (risky.length ? '\nDIKKAT: ' + risky.length + ' tanesi beyaz listede!\n' : '') +
+    var msg = pool.length + ' hesabı takipten çıkarmak üzeresin.\n' +
+      'Tahmini süre: ~' + estimateMinutes(pool.length) + ' dakika.\n' +
+      (risky.length ? '\nDİKKAT: ' + risky.length + ' tanesi beyaz listende!\n' : '') +
       '\nDevam edilsin mi?';
     if (!confirm(msg)) return;
 
     state.view = 'unfollowing';
     state.log = [];
-    state.unfollow = { done: 0, total: pool.length, stop: false, note: '' };
-    log('i', pool.length + ' hesap icin islem basladi.');
+    state.unfollow = { done: 0, total: pool.length, ok: 0, fail: 0, stop: false, note: '' };
+    log('i', pool.length + ' hesap için işlem başladı.');
     render();
 
     var consecutiveFails = 0;
     for (var i = 0; i < pool.length; i++) {
-      if (state.unfollow.stop) { log('i', 'Kullanici durdurdu.'); break; }
+      if (state.unfollow.stop) { log('i', 'İşlem durduruldu.'); break; }
       var u = pool[i];
       var r = await unfollowUser(u);
       state.unfollow.done++;
       if (r.ok) {
         consecutiveFails = 0;
-        log('ok', '@' + u.username + ' takipten cikildi');
+        state.unfollow.ok++;
+        log('ok', '@' + u.username + ' takipten çıkıldı');
         // Hangi yolun ise yaradigi sadece konsolda kalsin; kullaniciya gurultu.
         console.debug('[TU] unfollow @' + u.username + ' -> ' + r.via);
         state.selected.delete(u.id);
         state.following = state.following.filter(function (x) { return x.id !== u.id; });
       } else {
         consecutiveFails++;
-        log('no', '@' + u.username + ' BASARISIZ — ' + r.error);
+        state.unfollow.fail++;
+        log('no', '@' + u.username + ' başarısız — ' + r.error);
         if (/429|400|checkpoint|challenge/i.test(r.error)) {
-          log('i', 'Threads sinir koymus olabilir. Islem durduruluyor.');
-          state.unfollow.note = 'Hiz siniri algilandi, durduruldu.';
+          log('i', 'Threads sınır koymuş olabilir. İşlem durduruluyor.');
+          state.unfollow.note = 'Hız sınırı algılandı, durduruldu.';
           render();
           break;
         }
         if (consecutiveFails >= 3) {
-          log('i', 'Ust uste 3 hata. Bir sorun var, islem durduruluyor.');
-          state.unfollow.note = 'Ust uste hatalar nedeniyle durduruldu.';
+          log('i', 'Üst üste 3 hata alındı, işlem durduruluyor.');
+          state.unfollow.note = 'Üst üste hata nedeniyle durduruldu.';
           render();
           break;
         }
@@ -1473,18 +1563,18 @@
       if (i === pool.length - 1) break;
       await sleep(jitter(timings.unfollowDelay, 0.25));
       if ((i + 1) % timings.unfollowBatch === 0) {
-        log('i', 'Zorunlu mola basladi (' + fmtLeft(timings.unfollowBatchPause) + ') — engel onleme.');
+        log('i', 'Zorunlu mola başladı (' + fmtLeft(timings.unfollowBatchPause) + ') — engel önleme.');
         var completed = await pauseWithCountdown(
           timings.unfollowBatchPause,
           function () { return state.unfollow.stop; },
           function (left) { state.unfollow.note = 'Zorunlu mola — ' + fmtLeft(left); render(); }
         );
         state.unfollow.note = '';
-        if (!completed) { log('i', 'Mola sirasinda durduruldu.'); render(); break; }
+        if (!completed) { log('i', 'Mola sırasında durduruldu.'); render(); break; }
       }
     }
-    state.unfollow.note = 'Bitti';
-    log('i', 'Islem tamamlandi.');
+    state.unfollow.note = '';
+    log('i', 'İşlem tamamlandı.');
     render();
   }
 
@@ -1496,6 +1586,14 @@
   /* ------------------------------------------------------------------ */
   /* Baslat                                                             */
   /* ------------------------------------------------------------------ */
+
+  /* Islem ortasinda sekme kapatilirsa toplanan liste ve kalan islem kaybolur. */
+  window.addEventListener('beforeunload', function (e) {
+    if (!isBusy()) return;
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  });
 
   onCapture(function () { if (state.view === 'setup' && !state.settingsOpen) render(); });
   detectMeId();
@@ -1521,13 +1619,13 @@
     debug: DEBUG,
     // Fotograf sorunlarini teshis icin: __THREADS_UNFOLLOWERS__.sample()
     sample: function () {
-      console.log('Ham kullanici objesi:', DEBUG.rawUser);
-      console.log('Fotograf alanlari:', DEBUG.rawUser ? Object.keys(DEBUG.rawUser).filter(function (k) {
+      console.log('Ham kullanıcı objesi:', DEBUG.rawUser);
+      console.log('Fotoğraf alanları:', DEBUG.rawUser ? Object.keys(DEBUG.rawUser).filter(function (k) {
         return /pic|photo|image|avatar/i.test(k);
       }) : 'yok');
       return DEBUG.rawUser;
     }
   };
 
-  console.log('%cThreads Unfollowers hazir.', 'color:#3b82f6;font-weight:bold');
+  console.log('%cThreads Unfollowers hazır.', 'color:#3b82f6;font-weight:bold');
 })();
