@@ -740,6 +740,7 @@
     view: 'setup',            // setup | scanning | review | unfollowing
     scan: { phase: '', loaded: 0, pages: 0, stop: false, note: '' },
     following: [],
+    followingIds: new Set(),
     followers: [],
     followerIds: new Set(),
     tab: 'non',               // non | mutual | fans | white
@@ -1008,7 +1009,6 @@
 
   /* Sekme sayilarini tek seferde hesapla (her sekme icin ayri filtre pahali olmasin). */
   function tabCounts() {
-    var followed = new Set(state.following.map(function (u) { return u.id; }));
     var c = { non: 0, mutual: 0, fans: 0, white: 0 };
     for (var i = 0; i < state.following.length; i++) {
       var u = state.following[i];
@@ -1016,7 +1016,7 @@
       if (state.followerIds.has(u.id)) c.mutual++; else c.non++;
     }
     for (var j = 0; j < state.followers.length; j++) {
-      if (!followed.has(state.followers[j].id)) c.fans++;
+      if (!state.followingIds.has(state.followers[j].id)) c.fans++;
     }
     return c;
   }
@@ -1032,8 +1032,7 @@
         return state.followerIds.has(u.id) && !whitelistIds.has(u.id);
       });
     } else if (state.tab === 'fans') {
-      var fol = new Set(state.following.map(function (u) { return u.id; }));
-      list = state.followers.filter(function (u) { return !fol.has(u.id); });
+      list = state.followers.filter(function (u) { return !state.followingIds.has(u.id); });
     } else {
       list = state.following.filter(function (u) { return whitelistIds.has(u.id); });
     }
@@ -1482,11 +1481,12 @@
   async function startScan() {
     state.view = 'scanning';
     state.scan = { phase: 'Başlatılıyor\u2026', loaded: 0, pages: 0, stop: false, note: '' };
-    state.following = []; state.followers = []; state.followerIds = new Set();
+    state.following = []; state.followingIds = new Set(); state.followers = []; state.followerIds = new Set();
     state.selected.clear();
     render();
     try {
       state.following = await collectList('following', 'Takip edilenler');
+      state.followingIds = new Set(state.following.map(function (u) { return u.id; }));
       render();
       if (!state.scan.stop) {
         state.followers = await collectList('followers', 'Takipçiler');
@@ -1552,6 +1552,7 @@
         // Hangi yolun ise yaradigi sadece konsolda kalsin; kullaniciya gurultu.
         console.debug('[TU] unfollow @' + u.username + ' -> ' + r.via);
         state.selected.delete(u.id);
+        state.followingIds.delete(u.id);
         state.following = state.following.filter(function (x) { return x.id !== u.id; });
       } else {
         consecutiveFails++;

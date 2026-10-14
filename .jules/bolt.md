@@ -1,0 +1,3 @@
+## 2025-02-14 - Synchronous set building in render loops
+**Learning:** `visibleUsers` and `tabCounts` in `threads-unfollowers.js` dynamically calculate `new Set(state.following.map(...))` on every single render. Since rendering is tied synchronously to keystrokes on the search input, this causes an unnecessary O(N) array allocation + hashmap build on every character typed for thousands of following users, resulting in jank.
+**Action:** Avoid expensive object and array creations in synchronous event listener / render loops by caching those derived structures directly in the central state, maintaining them across operations like list fetching and item deletion.
