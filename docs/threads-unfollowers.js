@@ -212,10 +212,14 @@
 
   function normalizeUser(u) {
     var id = u.pk != null ? u.pk : (u.pk_id != null ? u.pk_id : u.id);
+    var username = u.username || '';
+    var full_name = u.full_name || u.fullName || '';
     return {
       id: String(id),
-      username: u.username || '',
-      full_name: u.full_name || u.fullName || '',
+      username: username,
+      _lower_username: username.toLowerCase(),
+      full_name: full_name,
+      _lower_full_name: full_name.toLowerCase(),
       profile_pic_url: pickPic(u),
       is_verified: !!(u.is_verified || u.isVerified),
       is_private: !!(u.is_private || u.isPrivate)
@@ -1042,9 +1046,9 @@
       if (!state.filters.private && u.is_private) return false;
       if (!state.filters.noPic && !u.profile_pic_url) return false;
       if (!q) return true;
-      return u.username.toLowerCase().indexOf(q) !== -1 ||
-             (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+      return u._lower_username.indexOf(q) !== -1 ||
+             u._lower_full_name.indexOf(q) !== -1;
+    });
   }
 
   function renderReview() {
@@ -1485,11 +1489,14 @@
     state.selected.clear();
     render();
     try {
+      var compareUsers = function (a, b) { return a.username.localeCompare(b.username, 'tr'); };
       state.following = await collectList('following', 'Takip edilenler');
+      state.following.sort(compareUsers);
       state.followingIds = new Set(state.following.map(function (u) { return u.id; }));
       render();
       if (!state.scan.stop) {
         state.followers = await collectList('followers', 'Takipçiler');
+        state.followers.sort(compareUsers);
       }
       state.followerIds = new Set(state.followers.map(function (u) { return u.id; }));
       state.view = 'review';
