@@ -212,10 +212,15 @@
 
   function normalizeUser(u) {
     var id = u.pk != null ? u.pk : (u.pk_id != null ? u.pk_id : u.id);
+    var username = u.username || '';
+    var fullName = u.full_name || u.fullName || '';
     return {
       id: String(id),
-      username: u.username || '',
-      full_name: u.full_name || u.fullName || '',
+      username: username,
+      full_name: fullName,
+      /* ⚡ Bolt Optimization: Precompute lowercase strings to prevent O(N) allocations in visibleUsers render loop */
+      _search_user: username.toLowerCase(),
+      _search_full: fullName.toLowerCase(),
       profile_pic_url: pickPic(u),
       is_verified: !!(u.is_verified || u.isVerified),
       is_private: !!(u.is_private || u.isPrivate)
@@ -1042,8 +1047,9 @@
       if (!state.filters.private && u.is_private) return false;
       if (!state.filters.noPic && !u.profile_pic_url) return false;
       if (!q) return true;
-      return u.username.toLowerCase().indexOf(q) !== -1 ||
-             (u.full_name || '').toLowerCase().indexOf(q) !== -1;
+      /* ⚡ Bolt Optimization: Use precomputed lowercase strings for search to avoid dynamic allocation on keystrokes */
+      return u._search_user.indexOf(q) !== -1 ||
+             u._search_full.indexOf(q) !== -1;
     }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
   }
 
