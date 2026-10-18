@@ -1008,7 +1008,15 @@
   }
 
   /* Sekme sayilarini tek seferde hesapla (her sekme icin ayri filtre pahali olmasin). */
+  var _cachedTabCounts = null;
+  var _cachedTabCountsKey = '';
   function tabCounts() {
+    // ⚡ Bolt: Cache tab counts calculation since it requires full N+M iteration and is called on every render/keystroke
+    var cacheKey = state.following.length + '|' + state.followers.length + '|' + whitelistIds.size;
+    if (_cachedTabCounts && _cachedTabCountsKey === cacheKey) {
+      return _cachedTabCounts;
+    }
+
     var c = { non: 0, mutual: 0, fans: 0, white: 0 };
     for (var i = 0; i < state.following.length; i++) {
       var u = state.following[i];
@@ -1018,33 +1026,37 @@
     for (var j = 0; j < state.followers.length; j++) {
       if (!state.followingIds.has(state.followers[j].id)) c.fans++;
     }
+
+    _cachedTabCounts = c;
+    _cachedTabCountsKey = cacheKey;
     return c;
   }
 
   function visibleUsers() {
-    var list;
-    if (state.tab === 'non') {
-      list = state.following.filter(function (u) {
-        return !state.followerIds.has(u.id) && !whitelistIds.has(u.id);
-      });
-    } else if (state.tab === 'mutual') {
-      list = state.following.filter(function (u) {
-        return state.followerIds.has(u.id) && !whitelistIds.has(u.id);
-      });
-    } else if (state.tab === 'fans') {
-      list = state.followers.filter(function (u) { return !state.followingIds.has(u.id); });
-    } else {
-      list = state.following.filter(function (u) { return whitelistIds.has(u.id); });
-    }
+    var list = state.tab === 'fans' ? state.followers : state.following;
     var q = state.search.trim().toLowerCase();
+
+    // ⚡ Bolt: Combine tab filtering and search filtering into a single pass to reduce intermediate arrays
     return list.filter(function (u) {
+      // Tab filter
+      if (state.tab === 'non') {
+        if (state.followerIds.has(u.id) || whitelistIds.has(u.id)) return false;
+      } else if (state.tab === 'mutual') {
+        if (!state.followerIds.has(u.id) || whitelistIds.has(u.id)) return false;
+      } else if (state.tab === 'fans') {
+        if (state.followingIds.has(u.id)) return false;
+      } else {
+        if (!whitelistIds.has(u.id)) return false;
+      }
+
+      // Search and feature filters
       if (!state.filters.verified && u.is_verified) return false;
       if (!state.filters.private && u.is_private) return false;
       if (!state.filters.noPic && !u.profile_pic_url) return false;
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    }); // ⚡ Bolt: Removed .sort() because lists are already pre-sorted in startScan()
   }
 
   function renderReview() {
@@ -1483,13 +1495,19 @@
     state.scan = { phase: 'Başlatılıyor\u2026', loaded: 0, pages: 0, stop: false, note: '' };
     state.following = []; state.followingIds = new Set(); state.followers = []; state.followerIds = new Set();
     state.selected.clear();
+    _cachedTabCounts = null;
+    _cachedTabCountsKey = '';
     render();
     try {
       state.following = await collectList('following', 'Takip edilenler');
+      // ⚡ Bolt: Sort lists exactly once upon fetch to prevent sorting on every UI render/keystroke
+      state.following.sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
       state.followingIds = new Set(state.following.map(function (u) { return u.id; }));
       render();
       if (!state.scan.stop) {
         state.followers = await collectList('followers', 'Takipçiler');
+        // ⚡ Bolt: Sort followers as well
+        state.followers.sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
       }
       state.followerIds = new Set(state.followers.map(function (u) { return u.id; }));
       state.view = 'review';
