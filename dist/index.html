@@ -491,10 +491,14 @@
 
   function normalizeUser(u) {
     var id = u.pk != null ? u.pk : (u.pk_id != null ? u.pk_id : u.id);
+    var uname = u.username || '';
+    var fname = u.full_name || u.fullName || '';
     return {
       id: String(id),
-      username: u.username || '',
-      full_name: u.full_name || u.fullName || '',
+      username: uname,
+      full_name: fname,
+      // ⚡ Bolt: Cache lowercase search string to avoid O(N) string allocs in hot render loops
+      _search_text: (uname + ' ' + fname).toLowerCase(),
       profile_pic_url: pickPic(u),
       is_verified: !!(u.is_verified || u.isVerified),
       is_private: !!(u.is_private || u.isPrivate)
@@ -1321,9 +1325,9 @@
       if (!state.filters.private && u.is_private) return false;
       if (!state.filters.noPic && !u.profile_pic_url) return false;
       if (!q) return true;
-      return u.username.toLowerCase().indexOf(q) !== -1 ||
-             (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+      // ⚡ Bolt: Use pre-computed lowercase text and omit the inline sort
+      return u._search_text.indexOf(q) !== -1;
+    });
   }
 
   function renderReview() {
@@ -1765,10 +1769,13 @@
     render();
     try {
       state.following = await collectList('following', 'Takip edilenler');
+      // ⚡ Bolt: Pre-sort the lists once during scan, since Array.filter preserves order.
+      state.following.sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
       state.followingIds = new Set(state.following.map(function (u) { return u.id; }));
       render();
       if (!state.scan.stop) {
         state.followers = await collectList('followers', 'Takipçiler');
+        state.followers.sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
       }
       state.followerIds = new Set(state.followers.map(function (u) { return u.id; }));
       state.view = 'review';
