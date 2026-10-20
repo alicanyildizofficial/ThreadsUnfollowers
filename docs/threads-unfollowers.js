@@ -1044,7 +1044,7 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    });
   }
 
   function renderReview() {
@@ -1485,11 +1485,14 @@
     state.selected.clear();
     render();
     try {
-      state.following = await collectList('following', 'Takip edilenler');
+      // Fetch and pre-sort lists once to avoid expensive sort during render
+      var followingList = await collectList('following', 'Takip edilenler');
+      state.following = followingList.sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
       state.followingIds = new Set(state.following.map(function (u) { return u.id; }));
       render();
       if (!state.scan.stop) {
-        state.followers = await collectList('followers', 'Takipçiler');
+        var followersList = await collectList('followers', 'Takipçiler');
+        state.followers = followersList.sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
       }
       state.followerIds = new Set(state.followers.map(function (u) { return u.id; }));
       state.view = 'review';
