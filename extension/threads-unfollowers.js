@@ -1021,6 +1021,8 @@
     return c;
   }
 
+  var trCollator = typeof Intl !== 'undefined' ? new Intl.Collator('tr') : null;
+
   function visibleUsers() {
     var list;
     if (state.tab === 'non') {
@@ -1044,7 +1046,9 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    }).sort(function (a, b) {
+      return trCollator ? trCollator.compare(a.username, b.username) : a.username.localeCompare(b.username, 'tr');
+    });
   }
 
   function renderReview() {
