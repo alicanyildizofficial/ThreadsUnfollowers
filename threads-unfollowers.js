@@ -1021,6 +1021,10 @@
     return c;
   }
 
+  // ⚡ Bolt: Cache Intl.Collator for faster sorting of large user lists
+  // This prevents significant synchronous main thread blocking during keypress
+  var collator = new Intl.Collator('tr');
+
   function visibleUsers() {
     var list;
     if (state.tab === 'non') {
@@ -1044,7 +1048,7 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    }).sort(function (a, b) { return collator.compare(a.username, b.username); });
   }
 
   function renderReview() {
