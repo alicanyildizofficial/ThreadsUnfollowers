@@ -1007,6 +1007,14 @@
     return '<div><span>' + label + '</span><b>' + value + '</b></div>';
   }
 
+  /*
+   * ⚡ Bolt Optimization:
+   * Cached Intl.Collator instance for sorting large user lists.
+   * `String.prototype.localeCompare` is synchronous and can cause UI jank when called repeatedly in `.sort()` inside the render loop.
+   * Caching `Intl.Collator` provides a measurable performance improvement for sorting large lists.
+   */
+  var trCollator = new Intl.Collator('tr');
+
   /* Sekme sayilarini tek seferde hesapla (her sekme icin ayri filtre pahali olmasin). */
   function tabCounts() {
     var c = { non: 0, mutual: 0, fans: 0, white: 0 };
@@ -1044,7 +1052,7 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    }).sort(function (a, b) { return trCollator.compare(a.username, b.username); });
   }
 
   function renderReview() {
