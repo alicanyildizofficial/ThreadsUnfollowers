@@ -46,6 +46,9 @@
   var PAGE_SIZE = 50; // arayuzdeki sayfa basina satir
   var SCAN_PAGE_LIMIT = 500; // guvenlik siniri
 
+  /* Performans Optimizasyonu: Liste siralama icin Intl.Collator onbellegi */
+  var trCollator = new Intl.Collator('tr');
+
   /*
    * Hiz sinirlari BILEREK sabittir ve arayuzden degistirilemez.
    * Bu degerleri dusurmek hesabin gecici olarak kisitlanmasina (action block)
@@ -1044,7 +1047,7 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    }).sort(function (a, b) { return trCollator.compare(a.username, b.username); });
   }
 
   function renderReview() {
