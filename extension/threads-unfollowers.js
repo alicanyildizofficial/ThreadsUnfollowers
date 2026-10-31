@@ -1021,6 +1021,8 @@
     return c;
   }
 
+  var TR_COLLATOR = typeof Intl !== 'undefined' && Intl.Collator ? new Intl.Collator('tr') : null;
+
   function visibleUsers() {
     var list;
     if (state.tab === 'non') {
@@ -1044,7 +1046,12 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    }).sort(function (a, b) {
+      // ⚡ Bolt: Cache Intl.Collator for sorting to avoid synchronous main thread blocking during dynamic renders
+      return TR_COLLATOR
+        ? TR_COLLATOR.compare(a.username, b.username)
+        : a.username.localeCompare(b.username, 'tr');
+    });
   }
 
   function renderReview() {
