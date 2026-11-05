@@ -45,6 +45,7 @@
   var DEFAULT_APP_ID = '238260118697367'; // Threads (Barcelona) web app id
   var PAGE_SIZE = 50; // arayuzdeki sayfa basina satir
   var SCAN_PAGE_LIMIT = 500; // guvenlik siniri
+  var collator = new Intl.Collator('tr'); // pre-computed collator for faster sorting
 
   /*
    * Hiz sinirlari BILEREK sabittir ve arayuzden degistirilemez.
@@ -1044,7 +1045,7 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    }).sort(function (a, b) { return collator.compare(a.username, b.username); });
   }
 
   function renderReview() {
