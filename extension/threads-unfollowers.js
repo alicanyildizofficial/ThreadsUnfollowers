@@ -1021,6 +1021,13 @@
     return c;
   }
 
+  /*
+   * ⚡ Bolt Optimization: Use a cached Intl.Collator for sorting instead of
+   * String.prototype.localeCompare inside the sort callback. This avoids creating
+   * locale comparison contexts repeatedly for large user lists, preventing UI blocking.
+   */
+  var collator = new Intl.Collator('tr');
+
   function visibleUsers() {
     var list;
     if (state.tab === 'non') {
@@ -1044,7 +1051,7 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    }).sort(function (a, b) { return collator.compare(a.username, b.username); });
   }
 
   function renderReview() {
