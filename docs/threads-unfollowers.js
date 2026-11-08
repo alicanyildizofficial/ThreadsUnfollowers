@@ -1021,6 +1021,15 @@
     return c;
   }
 
+  /*
+   * BOLT OPTIMIZATION:
+   * Cached Intl.Collator instance for sorting large user arrays.
+   * Calling String.prototype.localeCompare inside the sort callback creates significant
+   * synchronous main thread blocking during render loops (e.g., on keypress in search).
+   * Reusing this instance is dramatically faster.
+   */
+  var trCollator = new Intl.Collator('tr');
+
   function visibleUsers() {
     var list;
     if (state.tab === 'non') {
@@ -1044,7 +1053,7 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    }).sort(function (a, b) { return trCollator.compare(a.username, b.username); });
   }
 
   function renderReview() {
