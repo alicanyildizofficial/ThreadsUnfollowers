@@ -1007,6 +1007,9 @@
     return '<div><span>' + label + '</span><b>' + value + '</b></div>';
   }
 
+  /* Optimize sorting: Cache Intl.Collator instead of localeCompare on every element */
+  var userCollator = typeof Intl !== 'undefined' ? new Intl.Collator('tr') : null;
+
   /* Sekme sayilarini tek seferde hesapla (her sekme icin ayri filtre pahali olmasin). */
   function tabCounts() {
     var c = { non: 0, mutual: 0, fans: 0, white: 0 };
@@ -1044,7 +1047,9 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    }).sort(function (a, b) {
+      return userCollator ? userCollator.compare(a.username, b.username) : a.username.localeCompare(b.username, 'tr');
+    });
   }
 
   function renderReview() {
