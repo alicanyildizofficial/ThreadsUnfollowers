@@ -1021,6 +1021,11 @@
     return c;
   }
 
+  /* Performans optimizasyonu: localeCompare yerine onbellege alinmis collator
+   * kullanimi, buyuk veri setlerinde siralama yapilirken ana is parcaciginin
+   * bloke olmasini (UI jank) engeller. */
+  var trCollator = new Intl.Collator('tr');
+
   function visibleUsers() {
     var list;
     if (state.tab === 'non') {
@@ -1044,7 +1049,7 @@
       if (!q) return true;
       return u.username.toLowerCase().indexOf(q) !== -1 ||
              (u.full_name || '').toLowerCase().indexOf(q) !== -1;
-    }).sort(function (a, b) { return a.username.localeCompare(b.username, 'tr'); });
+    }).sort(function (a, b) { return trCollator.compare(a.username, b.username); });
   }
 
   function renderReview() {
